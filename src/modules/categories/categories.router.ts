@@ -11,3 +11,6 @@ CategoriesRouter.get('/getAll', validateJWT, categoriesController.findCategories
 
 //Crear categorías
 CategoriesRouter.post('/create', validateJWT, categoriesController.createCategory.bind(categoriesController));
+
+//Actualizar categorías
+CategoriesRouter.put('/update', validateJWT, categoriesController.updateCategory.bind(categoriesController));

@@ -9,11 +9,45 @@ export class CategoriesController {
     }
 
     /**
+     * Permite actualizar una categoría
+     * @returns Categoría actualizada
+     */
+    async updateCategory(request: Request, response: Response){
+        const { idCategory, name, description, color, tokenInfo } = request.body;
+
+        try {
+            if(!idCategory){
+                return response.status(400).json({
+                    ok: false,
+                    msg: "idCategory is required"
+                })
+            }
+
+            const updateCategory = await this.categoriesService.updateCategory({ idCategory, name, userId: tokenInfo.uid, color, description });
+
+            if(!updateCategory){
+                throw new Error("Category not found!");
+            }
+
+            return response.status(200).json({
+                ok: true,
+                updateCategory
+            })
+        } catch (error) {
+            console.error(`[ERROR][categoriesController][updateCategory]`, error);
+            return response.status(500).json({
+                ok: false,
+                msg: 'Ups! something unexpected happened'
+            });
+        }
+    }
+
+    /**
      * Permite crear una categoría
      * @returns Categoría creada
      */
     async createCategory(request: Request, response: Response){
-        const { name, description, tokenInfo } = request.body;
+        const { name, description, tokenInfo, color } = request.body;
 
         try {
             if(!name){
@@ -23,7 +57,7 @@ export class CategoriesController {
                 })
             }
 
-            const newCategory = await this.categoriesService.createCategory({ name, description, userId: tokenInfo.uid });
+            const newCategory = await this.categoriesService.createCategory({ name, description, userId: tokenInfo.uid, color });
 
             return response.status(200).json({
                 ok: true,

@@ -10,6 +10,10 @@ const CategorySchema = new Schema({
     type: String,
     required: false
   },
+  color: {
+    type: String,
+    default: '#ffffff'
+  },
   user: {
     type: Types.ObjectId,
     ref: 'User',
