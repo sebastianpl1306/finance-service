@@ -80,4 +80,42 @@ export class TransactionController {
             });
         }
     }
+
+    /**
+     * updateTransaction: Permite actualizar un nuevo movimiento
+     */
+    async updateTransaction (request: Request, response: Response) {
+        try {
+            const { name, description, categoryId, type, date, value, idTransaction, tokenInfo } = request.body;
+
+            if (!idTransaction) {
+                return response.status(400).json({
+                    ok: false,
+                    msg: "Info missing"
+                })
+            }
+
+            const updateTransaction = await this.transactionService.updateTransaction({ 
+                idTransaction,
+                name,
+                description,
+                categoryId,
+                userId: tokenInfo.uid,
+                type,
+                date: new Date(date),
+                value
+            });
+
+            return response.status(200).json({
+                ok: true,
+                updateTransaction
+            })
+        } catch (error) {
+            console.error(`[ERROR][updateTransaction] ${error}`);
+            return response.status(500).json({
+                ok: false,
+                msg: 'Ups! something unexpected happened'
+            });
+        }
+    }
 }

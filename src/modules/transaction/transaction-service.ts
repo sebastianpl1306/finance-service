@@ -12,8 +12,39 @@ interface CreateTransactionParams {
     value: number;
 }
 
+interface UpdateTransactionParams {
+    idTransaction: string;
+    name: string;
+    description?: string;
+    date?: Date;
+    value?: string;
+    categoryId?: string;
+    type?: string;
+    userId: string;
+}
+
 export class TransactionService {
     constructor() {}
+
+    /**
+     * Permite actualizar una transacción
+     */
+    async updateTransaction({ idTransaction, userId, name, description, date, value, categoryId, type }: UpdateTransactionParams){
+        try {
+            const updateTransaction = await TransactionModel.findOneAndUpdate({ _id: idTransaction, user: userId }, {
+                name,
+                description,
+                date,
+                value,
+                category: categoryId,
+                type
+            }, { new: true });
+
+            return updateTransaction;
+        } catch (error) {
+            throw new Error(`${error}`);
+        }
+    }
 
     /**
      * Permite crear un movimiento en la base de datos

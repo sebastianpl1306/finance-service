@@ -11,3 +11,6 @@ TransactionRouter.get('/', validateJWT, transactionController.findTransactions.b
 
 //Crear un ingreso
 TransactionRouter.post('/create', validateJWT, transactionController.addTransaction.bind(transactionController));
+
+//Actualizar un ingreso
+TransactionRouter.put('/update', validateJWT, transactionController.updateTransaction.bind(transactionController));
