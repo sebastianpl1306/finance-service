@@ -1,5 +1,6 @@
 import { NextFunction, Request, Response, Router } from 'express';
-import { AuthRouter, CategoriesRouter, TransactionRouter } from './modules';
+import { AuthRouter, CategoriesRouter, TransactionRouter, StatsRouter } from './modules';
+import { StatsRouter } from './modules/stats';
 
 export const router = Router();
 
@@ -16,3 +17,6 @@ router.use('/api/transaction', TransactionRouter);
 
 //Categorías
 router.use('/api/category', CategoriesRouter);
+
+//Stats
+router.use('/api/stats', StatsRouter);
