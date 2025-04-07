@@ -1,6 +1,5 @@
 import { NextFunction, Request, Response, Router } from 'express';
 import { AuthRouter, CategoriesRouter, TransactionRouter, StatsRouter } from './modules';
-import { StatsRouter } from './modules/stats';
 
 export const router = Router();
 

@@ -18,13 +18,13 @@ export class StatsController {
             // Consultar el total del último mes y año, segmentado por tipo
             const transactionsLastMonth = await TransactionModel.aggregate([
                 {
-                $match: { user: new Types.ObjectId(String(tokenInfo.uid)), date: { $gte: firstDayOfMonth } }
+                    $match: { user: new Types.ObjectId(String(tokenInfo.uid)), date: { $gte: firstDayOfMonth } }
                 },
                 {
-                $group: {
-                    _id: "$type",
-                    total: { $sum: "$value" }
-                }
+                    $group: {
+                        _id: "$type",
+                        total: { $sum: "$value" }
+                    }
                 }
             ]);
 
@@ -72,6 +72,47 @@ export class StatsController {
                 ok: false,
                 msg: 'Ups! something unexpected happened'
             });
+        }
+    }
+
+    async categoryStats(request: Request, response: Response) {
+        const { tokenInfo } = request.body;
+        try {
+            // Consultar el valor de las categorías del año actual
+            const categoriesValues = await TransactionModel.aggregate([
+                {
+                    $match: { user: new Types.ObjectId(String(tokenInfo.uid)) }
+                },
+                {
+                    $group: {
+                        _id: "$category",
+                        total: { $sum: "$value" }
+                    }
+                },
+                {
+                    $lookup: {
+                       from: "categories",
+                       localField: "_id",
+                       foreignField: "_id",
+                       as: "category"
+                    }
+                },
+                {
+                    $unwind: "$category"
+                }
+            ]);
+            
+            return response.status(200).json({
+                ok: true,
+                categoriesValues
+            });
+        } catch (error) {
+            console.error(`[ERROR][statsController][categoryStats]`, error);
+            return response.status(500).json({
+                ok: false,
+                msg: 'Ups! something unexpected happened'
+            });
+            
         }
     }
 }
