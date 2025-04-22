@@ -13,7 +13,7 @@ export class CategoriesController {
      * @returns Categoría actualizada
      */
     async updateCategory(request: Request, response: Response){
-        const { idCategory, name, description, color, tokenInfo } = request.body;
+        const { idCategory, name, description, color, type, tokenInfo } = request.body;
 
         try {
             if(!idCategory){
@@ -23,7 +23,7 @@ export class CategoriesController {
                 })
             }
 
-            const updateCategory = await this.categoriesService.updateCategory({ idCategory, name, userId: tokenInfo.uid, color, description });
+            const updateCategory = await this.categoriesService.updateCategory({ idCategory, name, userId: tokenInfo.uid, color, description, type });
 
             if(!updateCategory){
                 throw new Error("Category not found!");
@@ -47,17 +47,17 @@ export class CategoriesController {
      * @returns Categoría creada
      */
     async createCategory(request: Request, response: Response){
-        const { name, description, tokenInfo, color } = request.body;
+        const { name, description, type, tokenInfo, color } = request.body;
 
         try {
-            if(!name){
+            if(!name || !type){
                 return response.status(400).json({
                     ok: false,
-                    msg: "name is missing"
+                    msg: "info missing"
                 })
             }
 
-            const newCategory = await this.categoriesService.createCategory({ name, description, userId: tokenInfo.uid, color });
+            const newCategory = await this.categoriesService.createCategory({ name, description, userId: tokenInfo.uid, color, type });
 
             return response.status(200).json({
                 ok: true,

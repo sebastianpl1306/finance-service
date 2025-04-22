@@ -118,4 +118,26 @@ export class TransactionController {
             });
         }
     }
+
+    /**
+     * Permite consultar los meses y años de las transacciones de los usuarios
+     * @returns meses y años de las transacciones
+     */
+    async getDatesOFTransactions (request: Request, response: Response) {
+        try {
+            const { tokenInfo } = request.body;
+            const dates = await this.transactionService.getDatesOFTransactions(tokenInfo.uid);
+
+            return response.status(200).json({
+                ok: true,
+                dates
+            })
+        } catch (error) {
+            console.error(`[ERROR][getDatesOFTransactions] ${error}`);
+            return response.status(500).json({
+                ok: false,
+                msg: 'Ups! something unexpected happened'
+            });
+        }
+    }
 }

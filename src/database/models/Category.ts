@@ -1,5 +1,5 @@
 import { Schema, Types, model } from 'mongoose';
-import { Category } from '../../interfaces';
+import { Category, TypesTransaction } from '../../interfaces';
 
 const CategorySchema = new Schema({
   name: {
@@ -13,6 +13,11 @@ const CategorySchema = new Schema({
   color: {
     type: String,
     default: '#ffffff'
+  },
+  type: {
+    type: String,
+    enum: Object.values(TypesTransaction),
+    required: true
   },
   user: {
     type: Types.ObjectId,

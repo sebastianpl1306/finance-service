@@ -1,3 +1,4 @@
+import { Types } from "mongoose";
 import { TransactionModel } from "../../database";
 import { setFiltersTransactions } from "../../helpers";
 import { QueryFiltersTransaction, TransactionFilters, TypesTransaction } from "../../interfaces";
@@ -86,11 +87,12 @@ export class TransactionService {
 
             const transactions = await TransactionModel.find(query)
             .populate('category')
-            .sort({ createdAt: -1 })
+            .sort({ date: -1 })
             .skip(skip)
             .limit(limit);
 
-            const totalPages = await TransactionModel.countDocuments(query);
+            const totalTransactions = await TransactionModel.countDocuments(query);
+            const totalPages = Math.ceil(totalTransactions / limit);
 
             if (transactions) {
                 return {
@@ -107,6 +109,37 @@ export class TransactionService {
             };
         } catch (error) {
             throw new Error(`[ERROR][getTransactions] ${error}`);
+        }
+    }
+
+    /**
+     * Devuelve los meses y años de las transacciones de un usuario
+     * @param userId - ID del usuario
+     * @returns Meses y años de las transacciones
+     */
+    async getDatesOFTransactions(userId: string) {
+        try {
+            const transactions = await TransactionModel.aggregate([
+                    {
+                        $match: { user: new Types.ObjectId(String(userId)) }
+                    },
+                    {
+                        $group: {
+                            _id: {
+                                year: { $year: "$date" },
+                                month: { $month: "$date" }
+                            },
+                            count: { $sum: 1 }
+                        }
+                    },
+                    {
+                        $sort: { "_id.year": -1, "_id.month": -1 }
+                    }
+                ]);
+
+            return transactions;
+        } catch (error) {
+            throw new Error(`[ERROR][getDatesOFTransactions] ${error}`);
         }
     }
 }

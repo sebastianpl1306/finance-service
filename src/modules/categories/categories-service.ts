@@ -1,9 +1,11 @@
 import { CategoryModel } from "../../database";
+import { TypesTransaction } from "../../interfaces";
 
 interface CreateCategoryParams {
     name: string;
     description?: string;
     color?: string;
+    type: TypesTransaction;
     userId: string;
 }
 
@@ -12,6 +14,7 @@ interface UpdateCategoryParams {
     name: string;
     description?: string;
     color?: string;
+    type: TypesTransaction;
     userId: string;
 }
 
@@ -21,12 +24,13 @@ export class CategoriesService {
     /**
      * Permite actualizar una categoría
      */
-    async updateCategory({ idCategory, userId, name, description, color }: UpdateCategoryParams){
+    async updateCategory({ idCategory, userId, name, description, type, color }: UpdateCategoryParams){
         try {
             const updateCategory = await CategoryModel.findOneAndUpdate({ _id: idCategory, user: userId }, {
                 name,
                 description,
-                color
+                color,
+                type
             }, { new: true });
 
             return updateCategory;
@@ -38,9 +42,9 @@ export class CategoriesService {
     /**
      * Permite crear una categoría
      */
-    async createCategory({ name, description, userId, color }: CreateCategoryParams) {
+    async createCategory({ name, description, type, userId, color }: CreateCategoryParams) {
         try {
-            if (!name) {
+            if (!name || !type) {
                 throw new Error('Missing Info');
             }
 
@@ -48,6 +52,7 @@ export class CategoriesService {
                 user: userId,
                 name,
                 color,
+                type,
                 description
             });
 
