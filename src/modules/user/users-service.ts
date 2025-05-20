@@ -1,6 +1,6 @@
 import bcrypt from 'bcryptjs';
 
-import { UserModel } from '../../database';
+import { UserMembershipModel, UserModel } from '../../database';
 import { AuthenticationRoles, User } from '../../interfaces';
 
 interface CreateUserParams {
@@ -78,13 +78,19 @@ export class UserService {
         throw new Error('User or password incorrect');
       }
 
+      const membership = await UserMembershipModel.findOne({
+        user: user._id,
+        isActive: true
+      });
+
       return {
         uid: user._id,
         name: user.name,
         email: user.email,
         role: user.role,
         city: user.city,
-        country: user.country
+        country: user.country,
+        isSubscribed: !!membership
       }
     } catch (error) {
       throw new Error(`${error}`);
@@ -101,7 +107,24 @@ export class UserService {
       const user: User | null = await UserModel.findById(userId)
         .select('-password');
 
-      return user;
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      const membership = await UserMembershipModel.findOne({
+        user: user._id,
+        isActive: true
+      });
+
+      return {
+        uid: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        city: user.city,
+        country: user.country,
+        isSubscribed: !!membership
+      };
     } catch (error) {
       console.error('[ERROR][getInfoUserById]', error);
       throw new Error("Error invoke");

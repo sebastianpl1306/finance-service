@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response, Router } from 'express';
-import { AuthRouter, CategoriesRouter, TransactionRouter, StatsRouter } from './modules';
+import { AuthRouter, CategoriesRouter, TransactionRouter, StatsRouter, MembershipRouter } from './modules';
 
 export const router = Router();
 
@@ -19,3 +19,6 @@ router.use('/api/category', CategoriesRouter);
 
 //Stats
 router.use('/api/stats', StatsRouter);
+
+//Memberships
+router.use('/api/membership', MembershipRouter);

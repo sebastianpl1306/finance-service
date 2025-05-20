@@ -46,6 +46,7 @@ export class AuthController {
                 name: newUser.name,
                 email: newUser.email,
                 role: newUser.role,
+                isSubscribed: false,
                 token
             });
         } catch (error) {
@@ -90,6 +91,7 @@ export class AuthController {
                 name: user.name,
                 email: user.email,
                 role: user.role,
+                isSubscribed: user.isSubscribed,
                 token,
             })
         } catch (error) {

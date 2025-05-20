@@ -34,6 +34,8 @@ export class ServerClass {
   * Configuración de middlewares, rutas y cors.
   */
   private Configure () {
+    this.app.use('/api/membership/webhook', express.raw({ type: 'application/json' }));
+
     //* Middlewares
     this.app.use( express.json() );
     this.app.use( express.urlencoded({ extended: true }) ); // x-www-form-urlencoded
