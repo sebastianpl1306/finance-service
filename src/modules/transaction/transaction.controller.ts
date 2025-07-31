@@ -24,7 +24,8 @@ export class TransactionController {
                 textSearch,
                 type,
                 startDate,
-                finishDate
+                finishDate,
+                userId: request.body.tokenInfo.uid
             };
 
             const transactions = await this.transactionService.getTransactions(filters, page, limit);

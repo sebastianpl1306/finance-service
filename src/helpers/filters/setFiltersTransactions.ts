@@ -33,5 +33,10 @@ export const setFiltersTransactions = ( filters?: TransactionFilters ): QueryFil
 //     query.isDelete = filters.isDelete;
 //   }
 
+  //Buscar por el usuario
+  if (filters.userId) {
+    query.user = filters.userId;
+  }
+
   return query;
 }

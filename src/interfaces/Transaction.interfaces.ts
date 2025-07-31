@@ -23,6 +23,7 @@ export interface TransactionFilters {
     finishDate?: Date | null;
     categories?: string[] | null;
     type?: TypesTransaction;
+    userId?: string | null;
 }
 
 export interface QueryFiltersTransaction {
@@ -30,5 +31,6 @@ export interface QueryFiltersTransaction {
     categories?: { $in: string[] };
     date?: { $gte: Date, $lte: Date };
     type?: TypesTransaction;
+    user?: string;
     // isDelete?: boolean;
 }
