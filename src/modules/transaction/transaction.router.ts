@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { TransactionController } from './transaction.controller';
-import { validateJWT, validateMembership } from '../../middlewares';
+import { validateJWT } from '../../middlewares';
 
 export const TransactionRouter = Router();
 

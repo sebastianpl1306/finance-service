@@ -1,10 +1,7 @@
-import Stripe from 'stripe';
 import { Request, Response } from 'express';
 import { MembershipService } from './membership-service';
-import { UserMembershipModel, UserModel } from '../../database';
-import { stripe } from '../../helpers';
-import { envs } from '../../config';
-import { MembershipStatus } from '../../interfaces';
+import { UserMembershipModel } from '../../database';
+import { CreateSubscriptionRequest, MembershipStatus } from '../../interfaces';
 
 export class MembershipController {
     private membershipService: MembershipService;
@@ -13,199 +10,180 @@ export class MembershipController {
         this.membershipService = new MembershipService();
     }
 
-    async getMemberShipPlans(request: Request, response: Response) {
+    async createSubscription(req: Request, res: Response) {
         try {
-            const membershipPlans = await this.membershipService.getMembershipPlans();
-            return response.status(200).json({
-                ok: true,
-                membershipPlans
-            })
-        } catch (error) {
-            console.error(`[ERROR][MembershipController][getMemberShipPlans]`, error);
-            return response.status(500).json({
-                ok: false,
-                msg: 'Ups! something unexpected happened'
-            });
-        }
-    }
+            const subscriptionData: CreateSubscriptionRequest = req.body;
 
-    async createCheckoutSession(request: Request, response: Response) {
-        try {
-            const { tokenInfo } = request.body;
-
-            const session = await stripe.checkout.sessions.create({
-                mode: 'subscription',
-                payment_method_types: ['card'],
-                customer_email: tokenInfo.email,
-                client_reference_id: tokenInfo.uid,
-                line_items: [
-                    {
-                        price: 'price_1RO66lB32rMZvHMX4it3BrOr',
-                        quantity: 1,
-                    },
-                ],
-                success_url: `${envs.FRONT_DOMAIN}/config/payment/success?success=true&session_id={CHECKOUT_SESSION_ID}`,
-                cancel_url: `${envs.FRONT_DOMAIN}/config/payment/cancel`,
-            });
-
-            await UserMembershipModel.create({
-                user: tokenInfo.uid,
-                plan: '682a392d614bf182de1ea3f9',
-                startDate: new Date(),
-                endDate: new Date(new Date().setFullYear(new Date().getFullYear() + 1)),
-                isActive: false,
-                status: MembershipStatus.INCOMPLETE,
-            });
-
-            return response.status(200).json({
-                ok: true,
-                session
-            });
-        } catch (error) {
-            console.error(`[ERROR][MembershipController][createCheckoutSession]`, error);
-            return response.status(500).json({
-                ok: false,
-                msg: 'Ups! something unexpected happened'
-            });
-        }
-    }
-
-    async createPortalSession(request: Request, response: Response) {
-        try {
-            const { tokenInfo } = request.body;
-
-            const session = await stripe.billingPortal.sessions.create({
-                customer: 'cus_SJR2McEYt7lWPy',
-                return_url: `${envs.FRONT_DOMAIN}/config/account`,
-            });
-
-            return response.status(200).json({
-                ok: true,
-                session
-            });
-        } catch (error) {
-            console.error(`[ERROR][MembershipController][createPortalSession]`, error);
-            return response.status(500).json({
-                ok: false,
-                msg: 'Ups! something unexpected happened'
-            });
-        }
-    }
-
-    async webhook(request: Request, response: Response) {
-        try {
-            const sig = request.headers['stripe-signature'];
-            const event = stripe.webhooks.constructEvent(request.body, sig as string, envs.STRIPE_WEBHOOK_SECRET);
-
-            // Handle the event
-            switch (event.type) {
-                case 'checkout.session.completed':
-                    try {
-                        const session = event.data.object as Stripe.Checkout.Session;
-
-                        const user = await UserModel.findById(session.client_reference_id);
-
-                        console.log('valida la sesión completada',{ event: event.type, user });
-                        
-                        if(!user) {
-                            console.error('No se encontró el usuario', session.client_reference_id);
-                            return response.status(404).send('No se encontró el usuario');
-                        }
-
-                        const userMembership = await UserMembershipModel.findOne({ user: user._id });
-                    
-                        console.log('Busca el userMemberShip',{ event: event.type, userMembership, status: session.status });
-
-                        if(!userMembership) {
-                            console.error('No se encontró la membresía del usuario');
-                            return response.status(404).send('No se encontró la membresía del usuario');
-                        }
-
-                        if(session.status !== 'complete') {
-                            console.error('La sesión de checkout no está completa');
-                            return response.status(400).send('La sesión de checkout no está completa');
-                        }
-
-                        userMembership.status = session.status as MembershipStatus;
-                        userMembership.startDate = new Date(session.created * 1000);
-                        userMembership.stripeCustomerId = session.customer as string;
-                        userMembership.stripeSubscriptionId = session.subscription as string;
-                        await userMembership.save();
-
-                        console.log('Actualizar info',{ event: event.type });
-                        break;
-                    } catch (error) {
-                        console.error('Error procesando evento de checkout:', error);
-                        return response.status(500).send('Error interno');
-                    }
-                case 'customer.subscription.created':
-                    try {
-                        const subscription = event.data.object as Stripe.Subscription;
-
-                        const userMembership = await UserMembershipModel.findOne({
-                            stripeCustomerId: subscription.customer,
-                            stripeSubscriptionId: subscription.id,
-                        });
-
-                        console.log('Subscripción creada',{ event: event.type, userMembership, stripeCustomerId: subscription.customer as string,
-                            stripeSubscriptionId: subscription.id, });
-
-                        if(!userMembership) {
-                            console.error('No se encontró la membresía del usuario');
-                            return response.status(404).send('No se encontró la membresía del usuario');
-                        }
-
-                        if(subscription.status == MembershipStatus.ACTIVE || subscription.status == MembershipStatus.TRIALING) {
-                            userMembership.isActive = true;
-                        }
-
-                        userMembership.status = subscription.status as MembershipStatus;
-                        userMembership.startDate = new Date(subscription.start_date * 1000);
-                        await userMembership.save();
-
-                        console.log('Subscripción actualizada',{ event: event.type, userMembership });
-                        break;
-                    } catch (error) {
-                        console.error('Error procesando evento de suscripción:', error);
-                        return response.status(500).send('Error interno');
-                    }
-                    break;
-                case 'customer.subscription.updated':
-                    try {
-                        const subscription = event.data.object as Stripe.Subscription;
-
-                        const userMembership = await UserMembershipModel.findOne({
-                            stripeCustomerId: subscription.customer,
-                            stripeSubscriptionId: subscription.id,
-                        });
-
-                        if(!userMembership) {
-                            console.error('No se encontró la membresía del usuario');
-                            return response.status(404).send('No se encontró la membresía del usuario');
-                        }
-
-                        if(subscription.status == MembershipStatus.ACTIVE || subscription.status == MembershipStatus.TRIALING) {
-                            userMembership.isActive = true;
-                        }
-
-                        userMembership.status = subscription.status as MembershipStatus;
-                        userMembership.startDate = new Date(subscription.start_date * 1000);
-                        await userMembership.save();
-                        break;
-                    } catch (error) {
-                        console.error('Error procesando evento de suscripción:', error);
-                        return response.status(500).send('Error interno');
-                    }
-                default:
-                    console.log(`Unhandled event type ${event.type}`);
+            // Validar datos requeridos
+            if (!subscriptionData.userId || !subscriptionData.email || !subscriptionData.planId) {
+                return res.status(400).json({
+                error: 'userId, email y planId son requeridos'
+                });
             }
 
-            response.status(200).json({ received: true });
+            // Verificar si ya existe una suscripción activa para este usuario
+            const existingSubscription = await UserMembershipModel.findOne({
+                user: subscriptionData.userId,
+                status: { $in: ['active', 'pending'] }
+            });
+
+            if (existingSubscription) {
+                return res.status(400).json({
+                error: 'El usuario ya tiene una suscripción activa'
+                });
+            }
+
+            // Crear suscripción en Mercado Pago
+            const mpSubscription = await this.membershipService.createSubscription(subscriptionData);
+
+            // Calcular próxima fecha de pago
+            const nextPaymentDate = new Date();
+            if (subscriptionData.frequency === 'monthly') {
+                nextPaymentDate.setMonth(nextPaymentDate.getMonth() + 1);
+            } else {
+                nextPaymentDate.setFullYear(nextPaymentDate.getFullYear() + 1);
+            }
+
+            // Guardar suscripción en la base de datos
+            const subscription = new UserMembershipModel({
+                user: subscriptionData.userId,
+                planId: subscriptionData.planId,
+                mercadoPagoSubscriptionId: mpSubscription.id,
+                amount: subscriptionData.amount,
+                frequency: subscriptionData.frequency,
+                status: 'pending',
+                startDate: new Date(),
+                isActive: true,
+                nextPaymentDate
+            });
+
+            await subscription.save();
+
+            res.status(201).json({
+                ok: true,
+                msg: 'Suscripción creada exitosamente',
+                subscription: {
+                    id: subscription._id,
+                    status: subscription.status,
+                    mercadoPagoId: mpSubscription.id,
+                    initPoint: mpSubscription.init_point
+                }
+            });
+
         } catch (error) {
-            console.error(`[ERROR][MembershipController][webhook]`, error);
-            return response.status(500).json({
-                ok: false,
-                msg: 'Ups! something unexpected happened'
+            console.error('Error creating subscription:', error);
+            res.status(500).json({
+                error: 'Error interno del servidor'
+            });
+        }
+    }
+
+    // Obtener suscripciones del usuario
+    async getUserSubscriptions(req: Request, res: Response) {
+        try {
+            const { userId } = req.params;
+
+            const subscriptions = await UserMembershipModel.find({ user: userId })
+                .populate('user', 'name email')
+                .sort({ createdAt: -1 });
+
+            res.json({
+                ok: true,
+                msg: 'Suscripciones obtenidas exitosamente',
+                subscriptions
+            });
+
+        } catch (error) {
+            console.error('Error getting user subscriptions:', error);
+            res.status(500).json({
+                error: 'Error interno del servidor'
+            });
+        }
+    }
+
+    // Cancelar suscripción
+    async cancelSubscription(req: Request, res: Response) {
+        try {
+            const { subscriptionId } = req.params;
+
+            const subscription = await UserMembershipModel.findById(subscriptionId);
+            if (!subscription) {
+                return res.status(404).json({
+                error: 'Suscripción no encontrada'
+                });
+            }
+
+            if (subscription.status === MembershipStatus.CANCELED) {
+                return res.status(400).json({
+                error: 'La suscripción ya está cancelada'
+                });
+            }
+
+            // Cancelar en Mercado Pago
+            if (subscription.mercadoPagoSubscriptionId) {
+                await this.membershipService.cancelSubscription(subscription.mercadoPagoSubscriptionId);
+            }
+
+            // Actualizar estado en la base de datos
+            subscription.status = MembershipStatus.CANCELED;
+            await subscription.save();
+
+            res.json({
+                message: 'Suscripción cancelada exitosamente',
+                subscription
+            });
+
+        } catch (error) {
+            console.error('Error cancelling subscription:', error);
+            res.status(500).json({
+                error: 'Error interno del servidor'
+            });
+        }
+    }
+
+    // Webhook para notificaciones de Mercado Pago
+    async handleWebhook(req: Request, res: Response) {
+        try {
+        const { type, data } = req.body;
+
+        if (type === 'preapproval') {
+            const subscriptionId = data.id;
+            
+            // Obtener información actualizada de Mercado Pago
+            const mpSubscription = await this.membershipService.getSubscription(subscriptionId);
+            
+            // Buscar suscripción en nuestra base de datos
+            const subscription = await UserMembershipModel.findOne({
+            mercadoPagoSubscriptionId: subscriptionId
+            });
+
+            console.log({ subscription, mpSubscription });
+            
+            if (subscription) {
+            // Actualizar estado según Mercado Pago
+            const statusMap: { [key: string]: string } = {
+                'authorized': 'active',
+                'paused': 'paused',
+                'cancelled': 'cancelled'
+            };
+
+            const newStatus = statusMap[mpSubscription.status!] || 'pending';
+            
+            if (subscription.status !== newStatus) {
+                subscription.status = newStatus as any;
+                await subscription.save();
+                
+                console.log(`Subscription ${subscription._id} status updated to ${newStatus}`);
+            }
+            }
+        }
+
+        res.status(200).json({ received: true });
+
+        } catch (error) {
+            console.error('Error handling webhook:', error);
+            res.status(500).json({
+                error: 'Error procesando webhook'
             });
         }
     }

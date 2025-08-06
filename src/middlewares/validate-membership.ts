@@ -1,31 +1,36 @@
 import { NextFunction, Response } from "express";
-import { UserMembershipModel } from "../database";
+import { body, validationResult } from 'express-validator';
 
-export const validateMembership = async(request: any, response: Response, next: NextFunction) => {
-  const { tokenInfo } = request.body;
+export const validateSubscription = [
+  body('userId')
+    .notEmpty()
+    .withMessage('userId es requerido'),
+  
+  body('email')
+    .isEmail()
+    .withMessage('Email debe ser válido'),
+  
+  body('planId')
+    .notEmpty()
+    .withMessage('planId es requerido'),
+  
+  body('amount')
+    .isNumeric()
+    .isFloat({ min: 1 })
+    .withMessage('amount debe ser un número mayor a 0'),
+  
+  body('frequency')
+    .isIn(['monthly', 'yearly'])
+    .withMessage('frequency debe ser monthly o yearly'),
 
-  try {
-    const membership = await UserMembershipModel.findOne({ user: tokenInfo.uid, isActive: true });
-
-    if(!membership) {
-      return response.status(401).json({
-        ok: 'false',
-        msg: 'No tienes una membresía activa'
-      })
+  (req: any, res: Response, next: NextFunction) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        error: 'Datos de entrada inválidos',
+        details: errors.array()
+      });
     }
-
-    if (!membership.isActive || new Date(membership.endDate) < new Date()) {
-      return response.status(401).json({
-        ok: 'false',
-        msg: 'Membresía no activa o expirada'
-      })
-    }
-  } catch (error) {
-    return response.status(401).json({
-      ok: 'false',
-      msg: 'Token invalido!'
-    })
+    next();
   }
-
-  next();
-}
+];

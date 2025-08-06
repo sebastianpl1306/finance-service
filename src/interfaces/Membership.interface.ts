@@ -8,30 +8,27 @@ export interface MembershipPlan extends Document {
 }
 
 export interface UserMembership extends Document {
-    user: User;
-    plan: MembershipPlan;
-    startDate: Date;
-    endDate: Date;
-    isActive: boolean;
-    status: MembershipStatus;
-    stripeCustomerId?: string;
-    stripeSubscriptionId?: string;
+  user: User;
+  plan: MembershipPlan;
+  planId: string;
+  mercadoPagoSubscriptionId?: string;
+  status: MembershipStatus;
+  amount: number;
+  frequency: Intervals;
+  startDate: Date;
+  nextPaymentDate?: Date;
+  isActive: boolean;
 }
 
 export enum Intervals {
   MONTHLY = 'monthly',
-  YEARLY = 'yearly',
-  LIFETIME = 'lifetime'
+  YEARLY = 'yearly'
 }
 
 export enum MembershipStatus {
-  INCOMPLETE = 'incomplete',
-  INCOMPLETE_EXPIRED = 'incomplete_expired',
-  TRIALING = 'trialing',
+  PENDING = 'pending',
   ACTIVE = 'active',
-  PAST_DUE = 'past_due',
   CANCELED = 'canceled',
-  UNPAID = 'unpaid',
   PAUSED = 'paused',
   COMPLETE = 'complete',
 }
@@ -42,4 +39,13 @@ export enum MembershipStatusInvoice {
   PENDING = 'pending',
   SUCCEEDED = 'succeeded',
   FAILED = 'failed'
+}
+
+export interface CreateSubscriptionRequest {
+  userId: string;
+  email: string;
+  planId: string;
+  amount: number;
+  frequency: Intervals;
+  cardToken?: string;
 }

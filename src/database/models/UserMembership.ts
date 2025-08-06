@@ -1,5 +1,5 @@
 import { Schema, Types, model } from 'mongoose';
-import { MembershipStatus, UserMembership } from '../../interfaces';
+import { Intervals, MembershipStatus, UserMembership } from '../../interfaces';
 
 const UserMembershipSchema = new Schema({
   user: {
@@ -7,36 +7,40 @@ const UserMembershipSchema = new Schema({
     ref: 'User',
     required: true
   },
-  plan: {
-    type: Types.ObjectId,
-    ref: 'MembershipPlan',
+  planId: {
+    type: String,
+    required: true
+  },
+  mercadoPagoSubscriptionId: {
+    type: String,
+    required: true
+  },
+  status: {
+    type: String,
+    enum: Object.values(MembershipStatus),
+    default: MembershipStatus.PENDING
+  },
+  amount: {
+    type: Number,
+    required: true
+  },
+  frequency: {
+    type: String,
+    enum: Object.values(Intervals),
     required: true
   },
   startDate: {
     type: Date,
     default: Date.now
   },
-  endDate: {
+  nextPaymentDate: {
     type: Date,
     default: Date.now
   },
   isActive: {
     type: Boolean,
     default: false
-  },
-  status: {
-    type: String,
-    enum: Object.values(MembershipStatus),
-    default: MembershipStatus.INCOMPLETE
-  },
-  stripeCustomerId: {
-    type: String,
-    required: false
-  },
-  stripeSubscriptionId: {
-    type: String,
-    required: false
-  },
+  }
 }, { timestamps: true })
 
 export const UserMembershipModel = model<UserMembership>('UserMembership', UserMembershipSchema);

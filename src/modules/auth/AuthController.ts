@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
-import { UserModel } from '../../database/models';
+import { UserMembershipModel, UserModel } from '../../database/models';
 import { InfoTokenSave, User } from '../../interfaces';
 import { generateJWT } from '../../helpers';
 import { UserService } from '../user';
@@ -134,16 +134,22 @@ export class AuthController {
 
             const user = await this.userService.getInfoUserById( uid );
 
+            
             if(!user){
                 return response.status(401).json({
                     ok: false,
                     msg: 'No se pudo encontrar el usuario'
                 })
             }
+            
+            const membership = await UserMembershipModel.findOne({
+                user: user.uid
+            });
 
             return response.status(201). json({
                 ok: true,
-                user
+                user,
+                membership
             })
         } catch (error) {
             console.log('[ERROR][getUserInfo]',error);
